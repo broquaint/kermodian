@@ -26,14 +26,25 @@ all products from the index."
               :subject "Added a functioning UI"
               :body "It's pretty ugly and has hacks galore (documents need to be added
 manually i.e via the REPL) but it works."
-              :remarks
+              :replies
               [
                {
+                :id "abc123"
                 :author "Joe Critic"
                 :date   "201401021648"
                 :body "A thing well said."
+                :replies [
+                          {
+                           :id "def456"
+                           :author "Chip Chirp"
+                           :date "201301091021"
+                           :body "+1"
+                           }
+                          ]
                 }
-               {               :author "Jiminy Snark"
+               {
+                :id "cba321"
+                :author "Jiminy Snark"
                 :date   "201401011213"
                 :body "Way not to communicate, genius!"}
                ]
@@ -41,25 +52,35 @@ manually i.e via the REPL) but it works."
              ]
    })
 
-(defn user-remark [remark node]
+(defn reply-item [remark]
   (om/component
    (dom/li nil
-           (dom/em nil (:author remark)) " @ " (dom/code nil (:date remark))
-           (dom/p nil (:body remark)))))
+           ;; Section off reply so we can do CSS magic.
+           (dom/section #js { :className "reply" }
+                        (dom/em nil (:author remark)) " @ " (dom/code nil (:date remark))
+                        (dom/p nil (:body remark))
+                        (dom/button #js { :onClick #(print "Cool") :className "zing" }
+                                    "Zing!"))
+           (build-replies remark))))
 
-(defn handle-submit [e comment owner]
+(defn build-replies [comment]
+  (when (:replies comment)
+    (dom/ul #js { :className "replies" }
+            (om/build-all reply-item (:replies comment)))))
+
+(defn handle-reply-submit [e comment owner]
   (.preventDefault e)
   (let [textarea (om/get-node owner "newRemark")
         remark (.-value textarea)
         new-remark {:author "Foo Bar" :date "LATE" :body remark}]
-    (om/transact! comment :remarks #(conj % new-remark))
+    (om/transact! comment :replies #(conj % new-remark))
     (.reset (.-form textarea))))
 
-(defn remark-form [comment owner]
+(defn reply-form [comment owner]
   (om/component
-   (dom/form #js { :onSubmit #(handle-submit % comment owner) }
-                (dom/textarea #js { :placeholder "Write here." :ref "newRemark" })
-                (dom/input #js { :type "submit" :value "Remark!"}))))
+   (dom/form #js { :onSubmit #(handle-reply-submit % comment owner) }
+                (dom/textarea #js { :placeholder "Write here." :ref "newReply" })
+                (dom/input #js { :type "submit" :value "Reply!"}))))
 
 (defn git-comment [comment node]
   (om/component
@@ -75,12 +96,9 @@ manually i.e via the REPL) but it works."
                     (dom/dd nil (:subject comment))
                     (dom/dt nil "Message")
                     (dom/dd nil (dom/pre nil (:body comment)))))
-           (dom/div { :className "related-remarks"}
-                    (when (:remarks comment)
-                      (dom/ul #js { :className "remarks" }
-                              (om/build-all user-remark (:remarks comment))))
-                    (om/build remark-form comment)
-                    ))))
+           (dom/div { :className "related-replies"}
+                    (build-replies comment)
+                    (om/build reply-form comment)))))
 
 (defn the-app [app]
   (om/component
