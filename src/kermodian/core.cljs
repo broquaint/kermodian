@@ -18,7 +18,15 @@
               "Now products can be loaded via the UI, existing products updated to
 reflect synonyms (which still needs editting out of context) and remove
 all products from the index."
-              :replies []
+              :replies [
+                        {
+                         :sha1 "fcb765"
+                         :author "Joe Bloggs"
+                         :date "20130111734"
+                         :body "Fool me once"
+                         :replies []
+                         }
+                        ]
               }
 
              {
@@ -64,8 +72,6 @@ manually i.e via the REPL) but it works."
            (dom/section #js { :className "reply" }
                         (dom/em nil (:author remark)) " @ " (dom/code nil (:date remark))
                         (dom/p nil (:body remark))
-                        ;; XXX Yes keeping the display state in the
-                        ;; comment structure is gross.
                         (om/build reply-form remark))
            (build-replies remark))))
 
@@ -79,8 +85,9 @@ manually i.e via the REPL) but it works."
   (let [textarea (om/get-node owner "newReply")
         remark (.-value textarea)
         new-remark {:author "Foo Bar" :date (.toISOString (js/Date.)) :body remark :replying false :replies []}]
-    (om/transact! comment :replies #(conj % new-remark))
     ;; Bleurgh, can't figure out how to do both at once :/
+    (om/transact! comment :replies #(conj % new-remark))
+    ;; XXX Yes keeping the display state in the comment structure is gross.
     (om/update! comment assoc :replying false)
     (.reset (.-form textarea))))
 
@@ -98,17 +105,22 @@ manually i.e via the REPL) but it works."
             (dom/form #js {
                            :onSubmit #(handle-reply-submit % comment owner)
                            :style (hidden (not (:replying comment)))
+                           :className "pure-form"
                            :ref "replyForm"
                            }
-                      (dom/textarea #js { :placeholder "Write here." :ref "newReply" })
-                      (dom/input #js { :type "submit" :value "Reply!"}))
-            (dom/button #js { :onClick #(show-reply-form comment) :className "zing" }
-                        ">>"))))
+                      (dom/textarea #js { :placeholder "Write here ..." :ref "newReply" })
+                      (dom/button #js { :type "submit" :className "pure-button pure-button-primary"}
+                                  "Reply!"))
+            (dom/button #js {
+                             :onClick #(show-reply-form comment)
+                             :className "zing pure-button pure-button-primary"
+                             :placeholder ""}
+                        "+"))))
 
 (defn git-comment [comment node]
   (om/component
-   (dom/li #js { :className "git-comment" }
-           (dom/div nil
+   (dom/li #js { :className "git-comment pure-g" }
+           (dom/div #js { :className "pure-u-3-5"}
             (dom/code nil (:sha1 comment))
             (dom/dl { :className "git-details"}
                     (dom/dt nil "Author")
@@ -119,7 +131,7 @@ manually i.e via the REPL) but it works."
                     (dom/dd nil (:subject comment))
                     (dom/dt nil "Message")
                     (dom/dd nil (dom/pre nil (:body comment)))))
-           (dom/section #js { :className "reply"}
+           (dom/section #js { :className "reply pure-u-2-5"}
                     (build-replies comment)
                     (om/build reply-form comment)))))
 
